@@ -5,9 +5,16 @@ import { ethers } from "ethers";
 import { BookOpen, ArrowRight, Loader2, Scale, AlertCircle } from "lucide-react";
 import RuleExplainABI from "./abi.json";
 
+// FIX: Tell TypeScript about MetaMask's window.ethereum object
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 // --- CONFIGURATION ---
 // REPLACE THIS ADDRESS WITH YOUR DEPLOYED CONTRACT
-const CONTRACT_ADDRESS = "0xYourDeployedContractAddressHere"; 
+const CONTRACT_ADDRESS = "0x471b16E3cCaBD84EE2905da9273bA193B2b46616"; 
 
 export default function Home() {
   const [account, setAccount] = useState<string | null>(null);
@@ -39,7 +46,6 @@ export default function Home() {
       setOutput("");
       setStatus("Initializing transaction...");
 
-      // @ts-ignore
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, RuleExplainABI, signer);
