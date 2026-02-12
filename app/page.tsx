@@ -16,6 +16,20 @@ declare global {
 // REPLACE THIS ADDRESS WITH YOUR DEPLOYED CONTRACT
 const CONTRACT_ADDRESS = "0x471b16E3cCaBD84EE2905da9273bA193B2b46616"; 
 
+// GenLayer Studio Network Configuration
+// Note: 61999 (0xf22f) is a common GenLayer testnet ID. 
+// If MetaMask gives a Chain ID mismatch error, check the GenLayer Docs for the exact Studio Chain ID.
+const GENLAYER_NETWORK = {
+  chainId: "0xf22f", 
+  chainName: "GenLayer Studio",
+  nativeCurrency: {
+    name: "GEN",
+    symbol: "GEN",
+    decimals: 18,
+  },
+  rpcUrls: ["https://studio.genlayer.com/api"],
+};
+
 export default function Home() {
   const [account, setAccount] = useState<string | null>(null);
   const [input, setInput] = useState("");
@@ -26,12 +40,47 @@ export default function Home() {
   const connectWallet = async () => {
     if (typeof window !== "undefined" && window.ethereum) {
       try {
+        setStatus("Connecting to wallet...");
+        
+        // 1. Request Account Connection
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
+        
+        // 2. Force Network Switch to GenLayer
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: GENLAYER_NETWORK.chainId }],
+          });
+        } catch (switchError: any) {
+          // This error code means the chain has not been added to MetaMask yet.
+          if (switchError.code === 4902) {
+            try {
+              setStatus("Adding GenLayer network to wallet...");
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [GENLAYER_NETWORK],
+              });
+            } catch (addError) {
+              console.error("Failed to add network", addError);
+              setStatus("Error: Could not add GenLayer network.");
+              return; // Stop if they reject adding the network
+            }
+          } else {
+            console.error("Failed to switch network", switchError);
+            setStatus("Error: Could not switch to GenLayer network.");
+            return; // Stop if they reject switching
+          }
+        }
+
+        // 3. Success! Set the account.
         setAccount(accounts[0]);
+        setStatus(""); // Clear status on success
+
       } catch (err) {
         console.error("Failed to connect", err);
+        setStatus("Error: Wallet connection rejected.");
       }
     } else {
       alert("Please install MetaMask!");
